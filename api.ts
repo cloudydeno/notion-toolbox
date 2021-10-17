@@ -1,55 +1,83 @@
-import { readableStreamFromIterable } from "https://deno.land/std@0.105.0/io/streams.ts";
-import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import DatadogApi from "https://deno.land/x/datadog_api@v0.1.5/mod.ts";
-
-import { emitICalendar } from "./database-as-ical/mod.ts";
-import { NotionConnection } from "./object-model/mod.ts";
-
+import { MetricSubmission } from "https://deno.land/x/datadog_api@v0.1.5/v1/metrics.ts";
 const datadog = DatadogApi.fromEnvironment(Deno.env);
 
-async function asICal(params: URLSearchParams, wantsHtml: boolean): Promise<Response> {
-  const notion = NotionConnection.fromStaticAuthToken(params.get('auth') ?? undefined);
+import { makeCalendarResponse } from "./database-as-ical/mod.ts";
+import { NotionConnection } from "./object-model/mod.ts";
+import { RequestContext } from "./types.ts";
 
-  const db = await notion.searchForFirstDatabase({
-    query: params.get('query') ?? undefined,
-  });
-  if (!db) return new Response('Database not found', {status: 404});
-
-  const botUser = await notion.api.users.me({});
-  console.log('Sending database', db.title.asPlainText);
-  datadog.v1Metrics.submit([{
-    metric_name: 'notion.database_as_ical.render',
-    metric_type: 'count',
-    points: [{value: 1}],
-    tags: [`notion_db:${db.title.asPlainText}`, `notion_token:${botUser.name}`],
-  }]);
-
-  const dataStream = readableStreamFromIterable(emitICalendar(db));
-  return new Response(dataStream.pipeThrough(utf8Encode()), {
-    headers: new Headers({
-      'content-type': `text/${wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,
-      'content-disposition': 'inline; filename=calendar.ics',
-    }),
-  });
-}
-function utf8Encode() {
-  const encoder = new TextEncoder();
-  return map<string,Uint8Array>(x => encoder.encode(x));
-}
+const repoUrl = 'https://github.com/cloudydeno/notion-toolbox';
 
 async function handleRequest(request: Request): Promise<Response> {
-  const { protocol, host, pathname, search, searchParams, origin } = new URL(request.url);
-  console.log(request.method, pathname);
-  const wantsHtml = request.headers.get('accept')?.split(',').some(x => x.startsWith('text/html')) ?? false;
+  const ctx = new RequestImpl(request);
+  console.log(request.method, ctx.path);
 
-  if (pathname === '/database-as-ical') {
-    return await asICal(searchParams, wantsHtml);
-  } else if (pathname === '/') {
-    return ResponseText(200, 'Notion API Toolbox :)');
-  } else {
-    return ResponseText(404, 'Not found');
+  try {
+    if (ctx.path === '/database-as-ical') {
+      return await makeCalendarResponse(ctx);
+    } else if (ctx.path === '/') {
+      return ResponseText(200, `Notion Toolbox :)\n\n${repoUrl}`);
+    } else {
+      return ResponseText(404, 'Not found');
+    }
+  } finally {
+    ctx.flushMetrics().catch(err => {
+      console.error(`FAILED to flush metrics!`);
+      console.error((err as Error).message ?? err);
+    });
   }
 }
+
+class RequestImpl implements RequestContext {
+  public readonly metricTags = new Array<string>();
+  private readonly metrics = new Array<MetricSubmission>();
+  public readonly path: string;
+  public readonly params: URLSearchParams;
+
+  constructor(
+    public readonly original: Request,
+  ) {
+    const { protocol, host, pathname, search, searchParams, origin } = new URL(original.url);
+    this.path = pathname;
+    this.params = searchParams;
+  }
+
+  public notion?: NotionConnection;
+  public async getNotion() {
+    if (!this.notion) {
+      const auth = this.params.get('auth') ?? undefined;
+      this.notion = NotionConnection.fromStaticAuthToken(auth);
+    }
+    return this.notion;
+  }
+
+  incrementCounter(name: string, value: number) {
+    this.metrics.push({
+      metric_name: name,
+      metric_type: 'count',
+      points: [{value}],
+      tags: [],
+    });
+  }
+  async flushMetrics() {
+    if (this.notion) {
+      const botUser = await this.notion.api.users.me({});
+      this.metricTags.push(`notion_token:${botUser.name}`);
+    }
+
+    const metrics = this.metrics.map(x => ({ ...x,
+      tags: [...(x.tags || []), ...this.metricTags],
+    }));
+    this.metrics.length = 0;
+
+    await datadog.v1Metrics.submit(metrics);
+  }
+
+  get wantsHtml() {
+    return this.original.headers.get('accept')?.split(',').some(x => x.startsWith('text/html')) ?? false;
+  }
+}
+
 
 addEventListener("fetch", async (event) => {
   const request = (event as any).request as Request;
@@ -62,15 +90,12 @@ function renderError(err: Error) {
   console.error('!!!', msg);
   return ResponseText(500, `Internal Error!
 Feel free to try a second attempt.
-File any issues here: https://github.com/cloudydeno/notion-api-toolbox/issues
+File any issues here: ${repoUrl}/issues
 Internal stacktrace follows:
 ${msg}`);
 }
 function ResponseText(status: number, body: string) {
-  return new Response(body, {
-    status,
-    headers: {
-      "content-type": "text/plain; charset=utf-8",
-    },
-  });
+  const headers = new Headers();
+  headers.set('content-type', "text/plain; charset=utf-8");
+  return new Response(body, { status, headers });
 }

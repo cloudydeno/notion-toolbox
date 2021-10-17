@@ -1,4 +1,4 @@
-export class CalenderObject {
+export class CalendarObject {
   private readonly lines = new Array<string>();
   constructor(public readonly type: string) {
     this.lines.push(`BEGIN:${type}`);
@@ -23,18 +23,6 @@ export class CalenderObject {
     const data = this.lines.join('\n');
     this.lines.length = 0;
     return data+'\n\n';
-  }
-}
-
-export class Calendar extends CalenderObject {
-  constructor() {
-    super('VCALENDAR');
-  }
-}
-
-export class CalEvent extends CalenderObject {
-  constructor() {
-    super('VEVENT');
   }
 }
 

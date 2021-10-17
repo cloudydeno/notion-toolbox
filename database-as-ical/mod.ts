@@ -1,10 +1,36 @@
 #!/usr/bin/env -S deno run --allow-net=api.notion.com --allow-env=NOTION_KEY
 
+import { readableStreamFromIterable } from "https://deno.land/std@0.105.0/io/streams.ts";
+import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import { NotionConnection, NotionDatabase } from "../object-model/mod.ts";
-import { Calendar, CalEvent } from "./ical.ts";
+import { RequestContext } from "../types.ts";
+import { CalendarObject } from "./ical.ts";
 
-export async function* emitICalendar(db: NotionDatabase) {
-  const cal = new Calendar()
+export async function makeCalendarResponse(req: RequestContext) {
+  const notion = await req.getNotion();
+
+  // find the desired database
+  const db = await notion.searchForFirstDatabase({
+    query: req.params.get('query') ?? undefined,
+  });
+  if (!db) return new Response('Database not found', {status: 404});
+
+  // how often does google calendar update anyway?
+  req.metricTags.push(`notion_db:${db.title.asPlainText}`);
+  req.incrementCounter('notion.database_as_ical.render', 1);
+
+  // stream the iCal down
+  const dataStream = readableStreamFromIterable(emitCalendar(db));
+  return new Response(dataStream.pipeThrough(utf8Encode()), {
+    headers: new Headers({
+      'content-type': `text/${req.wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,
+      'content-disposition': 'inline; filename=calendar.ics',
+    }),
+  });
+}
+
+export async function* emitCalendar(db: NotionDatabase) {
+  const cal = new CalendarObject('VCALENDAR')
     .string('PRODID', '-//cloudydeno//notion-as-ical//EN')
     .string('VERSION', '2.0')
     .string('X-WR-CALNAME', `${db.title.asPlainText} (Notion)`)
@@ -13,7 +39,7 @@ export async function* emitICalendar(db: NotionDatabase) {
   for await (const page of db.queryAllPages()) {
     const dateProp = page.findDateProperty();
     if (!dateProp) continue;
-    yield new CalEvent()
+    yield new CalendarObject('VEVENT')
       .datetime('DTSTAMP', page.lastEditedTime, true)
       .datetime('DTSTART', dateProp.start, dateProp.hasTime)
       .datetime('DTEND', determineEndDate(dateProp), dateProp.hasTime)
@@ -32,13 +58,18 @@ function determineEndDate(dateProp: { start: Date; end: Date|null; hasTime: bool
   return endDate;
 }
 
+function utf8Encode() {
+  const encoder = new TextEncoder();
+  return map<string,Uint8Array>(x => encoder.encode(x));
+}
+
 // CLI test entrypoint, not used when handling HTTP requests
 if (import.meta.main) {
   const notion = NotionConnection.fromEnv();
   const db = await notion.searchForFirstDatabase({query: 'Posts'});
   if (!db) throw new Error(`No 'Posts' database found`);
 
-  for await (const line of emitICalendar(db)) {
+  for await (const line of emitCalendar(db)) {
     await Deno.stdout.write(new TextEncoder().encode(line));
   }
 }
