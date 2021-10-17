@@ -10,7 +10,7 @@ import {
 
 export class NotionConnection {
   constructor(
-    private api: Client,
+    public readonly api: Client,
   ) {}
 
   static fromStaticAuthToken(auth?: string) {

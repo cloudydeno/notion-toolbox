@@ -1,7 +1,11 @@
 import { readableStreamFromIterable } from "https://deno.land/std@0.105.0/io/streams.ts";
 import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
+import DatadogApi from "https://deno.land/x/datadog_api@v0.1.5/mod.ts";
+
 import { emitICalendar } from "./database-as-ical/mod.ts";
 import { NotionConnection } from "./object-model/mod.ts";
+
+const datadog = DatadogApi.fromEnvironment(Deno.env);
 
 async function asICal(params: URLSearchParams, wantsHtml: boolean): Promise<Response> {
   const notion = NotionConnection.fromStaticAuthToken(params.get('auth') ?? undefined);
@@ -9,7 +13,16 @@ async function asICal(params: URLSearchParams, wantsHtml: boolean): Promise<Resp
   const db = await notion.searchForFirstDatabase({
     query: params.get('query') ?? undefined,
   });
-  if (!db) return new Response('Not Found', {status: 404});
+  if (!db) return new Response('Database not found', {status: 404});
+
+  const botUser = await notion.api.users.me({});
+  console.log('Sending database', db.title.asPlainText);
+  datadog.v1Metrics.submit([{
+    metric_name: 'notion.database_as_ical.render',
+    metric_type: 'count',
+    points: [{value: 1}],
+    tags: [`notion_db:${db.title.asPlainText}`, `notion_token:${botUser.name}`],
+  }]);
 
   const dataStream = readableStreamFromIterable(emitICalendar(db));
   return new Response(dataStream.pipeThrough(utf8Encode()), {
