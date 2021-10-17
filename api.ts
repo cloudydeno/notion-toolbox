@@ -3,7 +3,7 @@ import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.
 import { emitICalendar } from "./database-as-ical/mod.ts";
 import { NotionConnection } from "./object-model/mod.ts";
 
-async function asICal(params: URLSearchParams): Promise<Response> {
+async function asICal(params: URLSearchParams, wantsHtml: boolean): Promise<Response> {
   const notion = NotionConnection.fromStaticAuthToken(params.get('auth') ?? undefined);
 
   const db = await notion.searchForFirstDatabase({
@@ -14,7 +14,7 @@ async function asICal(params: URLSearchParams): Promise<Response> {
   const dataStream = readableStreamFromIterable(emitICalendar(db));
   return new Response(dataStream.pipeThrough(utf8Encode()), {
     headers: new Headers({
-      'content-type': 'text/calendar; charset=utf-8',
+      'content-type': `text/${wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,
       'content-disposition': 'inline; filename=calendar.ics',
     }),
   });
@@ -30,7 +30,7 @@ async function handleRequest(request: Request): Promise<Response> {
   const wantsHtml = request.headers.get('accept')?.split(',').some(x => x.startsWith('text/html')) ?? false;
 
   if (pathname === '/database-as-ical') {
-    return await asICal(searchParams);
+    return await asICal(searchParams, wantsHtml);
   } else if (pathname === '/') {
     return ResponseText(200, 'Notion API Toolbox :)');
   } else {
