@@ -122,14 +122,14 @@ export class NotionPage extends NotionBlockParent {
   get lastEditedTime() { return new Date(this.snapshot.last_edited_time); }
   get url() { return this.snapshot.url; }
 
-  get titleProp() {
+  get title() {
     const prop = Object
       .values(this.snapshot.properties)
       .find(x => x.type == 'title') as TitleProperty | undefined;
     return new NotionTextString(prop?.title ?? []);
   }
 
-  get dateProp() {
+  findDateProperty() {
     const prop = Object
       .values(this.snapshot.properties)
       .find(x => x.type == 'date') as DateProperty | undefined;
