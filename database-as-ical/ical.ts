@@ -12,7 +12,8 @@ export class CalendarObject {
     return this;
   }
   string(key: string, value: string) {
-    this.lines.push(`${key}:${escapeString(value)}`);
+    let fullText = `${key}:${escapeString(value)}`;
+    this.lines.push(fullText);
     return this;
   }
   end() {
@@ -20,9 +21,10 @@ export class CalendarObject {
     return this;
   }
   flush() {
-    const data = this.lines.join('\n');
+    this.lines.push('');
+    const finalLines = this.lines.flatMap(wrapString);
     this.lines.length = 0;
-    return data+'\n\n';
+    return finalLines.join('\r\n');
   }
 }
 
@@ -30,4 +32,18 @@ function escapeString(raw: string) {
   return raw
     .replace(/[\\,;]/g, x => `\\${x}`)
     .replace(/\r?\n/g, '\\n');
+}
+
+// TODO: should be 75 OCTETS, and thus handle multibyte
+// and maybe something about escape sequences?
+// possible reference: https://gist.github.com/hugowetterberg/81747
+function wrapString(original: string) {
+  const lines = [original.slice(0, 70)];
+  let idx = lines[0].length;
+  while (idx < original.length) {
+    const nextLine = original.substr(idx, 69);
+    idx += nextLine.length;
+    lines.push(`\t${nextLine}`);
+  }
+  return lines;
 }

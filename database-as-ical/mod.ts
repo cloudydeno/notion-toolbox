@@ -21,25 +21,31 @@ export async function makeCalendarResponse(req: RequestContext) {
 
   // stream the iCal down
   const dataStream = readableStreamFromIterable(emitCalendar(db));
-  return new Response(dataStream.pipeThrough(utf8Encode()), {
-    headers: new Headers({
+  const encoder = new TextEncoder();
+  return new Response(dataStream.pipeThrough(map(x => encoder.encode(x))), {
+    headers: {
       'content-type': `text/${req.wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,
       'content-disposition': 'inline; filename=calendar.ics',
-    }),
+    },
   });
 }
 
 export async function* emitCalendar(db: NotionDatabase) {
   const cal = new CalendarObject('VCALENDAR')
-    .string('PRODID', '-//cloudydeno//notion-as-ical//EN')
+    .string('PRODID', import.meta.url.startsWith('https:')
+      ? import.meta.url : '-//cloudydeno/notion-toolbox//database-as-ical//EN')
     .string('VERSION', '2.0')
     .string('X-WR-CALNAME', `${db.title.asPlainText} (Notion)`)
+    .string('X-WR-RELCALID', `${db.id}@notion.so`)
+    .string('X-PUBLISHED-TTL', 'PT1H')
   yield cal.flush();
 
   for await (const page of db.queryAllPages()) {
     const dateProp = page.findDateProperty();
     if (!dateProp) continue;
+
     yield new CalendarObject('VEVENT')
+      .string('UID', `${page.id}@notion.so`)
       .datetime('DTSTAMP', page.lastEditedTime, true)
       .datetime('DTSTART', dateProp.start, dateProp.hasTime)
       .datetime('DTEND', determineEndDate(dateProp), dateProp.hasTime)
@@ -56,11 +62,6 @@ function determineEndDate(dateProp: { start: Date; end: Date|null; hasTime: bool
   const endDate = new Date(dateProp.start);
   endDate.setHours(endDate.getHours() + (dateProp.hasTime ? 1 : 24));
   return endDate;
-}
-
-function utf8Encode() {
-  const encoder = new TextEncoder();
-  return map<string,Uint8Array>(x => encoder.encode(x));
 }
 
 // CLI test entrypoint, not used when handling HTTP requests
