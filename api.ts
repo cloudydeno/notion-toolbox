@@ -8,18 +8,27 @@ import { RequestContext } from "./types.ts";
 
 const repoUrl = 'https://github.com/cloudydeno/notion-toolbox';
 
+async function routeRequest(ctx: RequestContext): Promise<Response> {
+  if (ctx.path === '/database-as-ical') {
+    ctx.metricTags.push('http_controller:database-as-ical');
+    return await makeCalendarResponse(ctx);
+  } else if (ctx.path === '/') {
+    ctx.metricTags.push('http_controller:index');
+    return ResponseText(200, `Notion Toolbox :)\n\n${repoUrl}`);
+  } else {
+    return ResponseText(404, 'Not found');
+  }
+}
+
 async function handleRequest(request: Request): Promise<Response> {
   const ctx = new RequestImpl(request);
   console.log(request.method, ctx.path);
 
+  ctx.incrementCounter('http.requests', 1);
   try {
-    if (ctx.path === '/database-as-ical') {
-      return await makeCalendarResponse(ctx);
-    } else if (ctx.path === '/') {
-      return ResponseText(200, `Notion Toolbox :)\n\n${repoUrl}`);
-    } else {
-      return ResponseText(404, 'Not found');
-    }
+    const resp = await routeRequest(ctx).catch(renderError);
+    ctx.metricTags.push(`http_status:${resp.status}`);
+    return resp;
   } finally {
     ctx.flushMetrics().catch(err => {
       console.error(`FAILED to flush metrics!`);
