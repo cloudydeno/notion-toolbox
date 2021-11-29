@@ -6,6 +6,9 @@ import {
   QueryDatabaseParameters,
   SearchBodyParameters,
   SearchResponse,
+  UpdateBlockParameters,
+  UpdateDatabaseParameters,
+  UpdatePageParameters,
 } from "https://deno.land/x/notion_sdk@v0.4.4/src/api-endpoints.ts"
 
 export class NotionConnection {
@@ -24,6 +27,22 @@ export class NotionConnection {
     }));
   }
 
+  async pageById(pageId: string) {
+    const page = new NotionPage(this.api, pageId);
+    await page.ensureSnapshot();
+    return page;
+  }
+  async blockById(blockId: string) {
+    const block = new NotionBlock(this.api, blockId);
+    // await block.ensureSnapshot();
+    return block;
+  }
+  async databaseById(databaseId: string) {
+    const database = new NotionDatabase(this.api, databaseId);
+    await database.ensureSnapshot();
+    return database;
+  }
+
   async searchForFirstDatabase(options: Omit<SearchBodyParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
     const response = await this.api.search({
       ...options,
@@ -36,6 +55,20 @@ export class NotionConnection {
     if (response.results.length < 1) return null;
     const [result] = response.results;
     return new NotionDatabase(this.api, result.id, result as SearchResult & {object: 'database'});
+  }
+
+  async searchForFirstPage(options: Omit<SearchBodyParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
+    const response = await this.api.search({
+      ...options,
+      page_size: 1,
+      filter: {
+        property: 'object',
+        value: 'page',
+      },
+    });
+    if (response.results.length < 1) return null;
+    const [result] = response.results;
+    return new NotionPage(this.api, result.id, result as SearchResult & {object: 'page'});
   }
 
   async* searchForPages(options: Omit<SearchBodyParameters, 'filter' | 'start_cursor'> = {}) {
@@ -88,15 +121,29 @@ export class NotionBlock extends NotionBlockParent {
   constructor(
     api: Client,
     public readonly id: string,
-    public snapshot?: GetBlockResponse,
+    public knownSnapshot?: GetBlockResponse,
   ) {
     super(api, id);
   }
 
-  async getSnapshot() {
-    if (!this.snapshot) this.snapshot = await this
-      .api.blocks.retrieve({ block_id: this.id });
-    return this.snapshot;
+  async ensureSnapshot() {
+    if (this.knownSnapshot) return this.knownSnapshot;
+    return this.knownSnapshot = await this.api.blocks.retrieve({ block_id: this.id });
+  }
+  get snapshot() {
+    if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
+    return this.knownSnapshot;
+  }
+
+  get asDatabase() {
+    return new NotionDatabase(this.api, this.id);
+  }
+
+  update(options: Omit<UpdateBlockParameters, 'block_id'>) {
+    return this.api.blocks.update({
+      block_id: this.id,
+      ...options,
+    });
   }
 }
 
@@ -110,11 +157,11 @@ export class NotionPage extends NotionBlockParent {
   }
 
   async ensureSnapshot() {
-    if (this.knownSnapshot) return;
-    this.knownSnapshot = await this.api.pages.retrieve({ page_id: this.id });
+    if (this.knownSnapshot) return this.knownSnapshot;
+    return this.knownSnapshot = await this.api.pages.retrieve({ page_id: this.id });
   }
   get snapshot() {
-    if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .getSnapshot first`)
+    if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
     return this.knownSnapshot;
   }
 
@@ -122,30 +169,58 @@ export class NotionPage extends NotionBlockParent {
   get lastEditedTime() { return new Date(this.snapshot.last_edited_time); }
   get url() { return this.snapshot.url; }
 
-  get title() {
-    const prop = Object
-      .values(this.snapshot.properties)
-      .find(x => x.type == 'title') as TitleProperty | undefined;
-    return new NotionTextString(prop?.title ?? []);
+  // let the weird property type stuff live here
+  findPropertyOfType<T extends string>(type: T, name?: string) {
+    return Object
+      .entries(this.snapshot.properties)
+      .find(x => x[1].type == type && (name == null || name == x[0]))
+    ?.[1] as (GetPageResponse['properties'][string] & {type: T}) | undefined;
   }
 
-  findDateProperty() {
-    const prop = Object
-      .values(this.snapshot.properties)
-      .find(x => x.type == 'date') as DateProperty | undefined;
+  // exactly one of these props so a getter seems more intuitive
+  get title() {
+    const prop = this.findPropertyOfType('title');
+    return new NotionRichText(prop?.title ?? []);
+  }
+
+  findDateProperty(name?: string) {
+    const prop = this.findPropertyOfType('date', name);
     return prop?.date ? {
       start: new Date(prop.date.start),
       end: prop.date.end ? new Date(prop.date.end) : null,
       hasTime: prop.date.start.includes('T'),
     } : null;
   }
-}
-type TitleProperty = GetPageResponse['properties'][string] & {type: 'title'};
-type DateProperty = GetPageResponse['properties'][string] & {type: 'date'};
 
-export class NotionTextString {
+  findUrlProperty(name?: string) {
+    const prop = this.findPropertyOfType('url', name);
+    return prop?.url;
+  }
+  findRichTextProperty(name?: string) {
+    const prop = this.findPropertyOfType('rich_text', name);
+    return prop && new NotionRichText(prop.rich_text);
+  }
+  findSelectProperty(name?: string) {
+    const prop = this.findPropertyOfType('select', name);
+    return prop?.select;
+  }
+  findMultiSelectProperty(name?: string) {
+    const prop = this.findPropertyOfType('multi_select', name);
+    return prop?.multi_select;
+  }
+
+  update(options: Omit<UpdatePageParameters, 'page_id'>) {
+    return this.api.pages.update({
+      page_id: this.id,
+      ...options,
+    });
+  }
+}
+
+export class NotionRichText {
   constructor(
-    public spans: TitleProperty['title'],
+    // TODO: probably a shorter path to this?
+    public spans: (GetPageResponse['properties'][string] & {type: 'title'})['title'],
   ) {}
 
   get asPlainText() {
@@ -174,16 +249,23 @@ export class NotionDatabase extends NotionObject {
   }
 
   async ensureSnapshot() {
-    if (this.knownSnapshot) return;
-    this.knownSnapshot = await this.api.databases.retrieve({ database_id: this.id });
+    if (this.knownSnapshot) return this.knownSnapshot;
+    return this.knownSnapshot = await this.api.databases.retrieve({ database_id: this.id });
   }
   get snapshot() {
-    if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .getSnapshot first`)
+    if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
     return this.knownSnapshot;
   }
 
-  get title() { return new NotionTextString(this.snapshot.title); }
+  get title() { return new NotionRichText(this.snapshot.title); }
   get url() { return this.snapshot.url; }
+
+  update(options: Omit<UpdateDatabaseParameters, 'database_id'>) {
+    return this.api.databases.update({
+      database_id: this.id,
+      ...options,
+    });
+  }
 }
 
 async function* paginateFully<O>(pageFunc: (start_cursor?: string) => Promise<{
