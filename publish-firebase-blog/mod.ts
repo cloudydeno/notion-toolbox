@@ -39,7 +39,7 @@ async function loadContentNode(page: NotionPage): Promise<ContentNode> {
   return {
     filename: `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`,
     plainTitle, richTitle,
-    section: page.findSelectProperty('Section'),
+    section: page.findSelectProperty('Section') ?? null,
     publishedAt: page.findDateProperty('Publish date')?.start ?? null,
     status: page.findSelectProperty('Status')?.name as any,
     innerHtml: body,
@@ -388,7 +388,7 @@ interface ContentNode {
   // title: string;
   plainTitle: string;
   richTitle: string;
-  section: Record<string, string> | undefined;
+  section: Record<string, string> | null;
   publishedAt: Date | null;
   status: 'Idea' | 'Draft' | 'Published' | 'Archived';
   innerHtml: string;

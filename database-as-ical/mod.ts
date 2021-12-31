@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-net=api.notion.com --allow-env=NOTION_KEY
 
-import { readableStreamFromIterable } from "https://deno.land/std@0.105.0/io/streams.ts";
+import { readableStreamFromIterable } from "https://deno.land/std@0.115.0/io/streams.ts";
 import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import { NotionConnection, NotionDatabase } from "../object-model/mod.ts";
 import { RequestContext } from "../types.ts";

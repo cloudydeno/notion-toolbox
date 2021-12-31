@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-env=NOTION_KEY --allow-net=api.notion.com --allow-write=.
-import { assertEquals } from "https://deno.land/std@0.105.0/testing/asserts.ts";
+import { assertEquals } from "https://deno.land/std@0.115.0/testing/asserts.ts";
 
 import {
   NotionConnection,
