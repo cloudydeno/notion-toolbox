@@ -146,26 +146,51 @@ class HtmlBlockScope {
 }
 
 function formText(texts: NotionRichText['spans']) {
-  const bits = new Array<string>();
-  for (const text of texts) {
+  const textWithTags = texts.flatMap(text => {
     assertEquals(text.type, 'text');
-    if (text.type === 'text') {
-      if (text.text.link) bits.push(`<a href="${encode(text.text.link.url)}" target="_blank">`);
-      if (text.annotations.code) bits.push('<code>');
-      if (text.annotations.bold) bits.push('<strong>');
-      if (text.annotations.italic) bits.push('<em>');
-      if (text.annotations.underline) bits.push('<ins>');
-      if (text.annotations.strikethrough) bits.push('<del>');
-      if (text.annotations.color != 'default') bits.push(`<span ${mapColorToAttribute(text.annotations.color)}>`);
-      bits.push(encode(text.text.content).replace(/\r?\n/g, '\n<br/>'));
-      if (text.annotations.color != 'default') bits.push(`</span>`);
-      if (text.annotations.strikethrough) bits.push('</del>');
-      if (text.annotations.underline) bits.push('</ins>');
-      if (text.annotations.italic) bits.push('</em>');
-      if (text.annotations.bold) bits.push('</strong>');
-      if (text.annotations.code) bits.push('</code>');
-      if (text.text.link) bits.push(`</a>`);
+    if (text.type !== 'text') return [];
+
+    const tags = new Set<string>();
+    if (text.text.link) tags.add(`<a href="${encode(text.text.link.url)}" target="_blank">`);
+    if (text.annotations.code) tags.add('<code>');
+    if (text.annotations.bold) tags.add('<strong>');
+    if (text.annotations.italic) tags.add('<em>');
+    if (text.annotations.underline) tags.add('<ins>');
+    if (text.annotations.strikethrough) tags.add('<del>');
+    if (text.annotations.color != 'default') tags.add(`<span ${mapColorToAttribute(text.annotations.color)}>`);
+    return [{
+      text: encode(text.text.content).replace(/\r?\n/g, '\n<br/>'),
+      tags,
+    }];
+  });
+
+  const bits = new Array<string>();
+  const openTags = new Array<string>();
+  textWithTags.forEach(({text, tags}, idx, array) => {
+    while (openTags.length > 0 && openTags.some(x => !tags.has(x))) {
+      const goneTag = openTags.shift()!;
+      bits.push(`</${goneTag.split(/[<> ]/)[1]}>`);
     }
+
+    const newTags = Array.from(tags).filter(x => !openTags.includes(x));
+    const nextTags = array[idx+1]?.tags ?? new Set();
+    newTags.sort((a, b) => {
+      if (nextTags.has(a) === nextTags.has(b)) {
+        return `${a}`.localeCompare(`${b}`);
+      }
+      else return nextTags.has(a) ? -1 : 1;
+    });
+
+    for (const tag of newTags) {
+      bits.push(tag);
+      openTags.unshift(tag);
+    }
+
+    bits.push(text);
+  });
+  while (openTags.length > 0) {
+    const goneTag = openTags.shift()!;
+    bits.push(`</${goneTag.split(/[<> ]/)[1]}>`);
   }
   return bits.join('');
 }
