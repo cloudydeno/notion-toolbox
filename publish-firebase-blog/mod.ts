@@ -36,8 +36,9 @@ async function loadContentNode(page: NotionPage): Promise<ContentNode> {
   //     const data = readStructure(raw.Children);
   //     const blobs = raw.Children.flatMap(x => x.Type === 'Blob' ? [x] : []);
   const {body, plainTitle, richTitle} = await emitPageHtml(page);
+  const filename = `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`;
   return {
-    filename: `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`,
+    filename, path: filename,
     plainTitle, richTitle,
     section: page.findSelectProperty('Section') ?? null,
     publishedAt: page.findDateProperty('Publish date')?.start ?? null,
@@ -371,7 +372,7 @@ class BlogSite {
     const pageBody = renderMustache(defaultText, {
       siteTitle: this.siteTitle,
       siteSubtitle: this.siteSubtitle,
-      pages: this.pages,
+      pages: this.pages.filter(x => x.status === 'Published'),
       posts: this.posts,
       photos: this.photos,
       innerHtml, baseHref,
@@ -390,7 +391,7 @@ interface ContentNode {
   richTitle: string;
   section: Record<string, string> | null;
   publishedAt: Date | null;
-  status: 'Idea' | 'Draft' | 'Published' | 'Archived';
+  status: 'Idea' | 'Draft' | 'Published' | 'Archived' | 'Hidden' | 'Ignored';
   innerHtml: string;
   // raw: string;
 
