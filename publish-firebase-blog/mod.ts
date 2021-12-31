@@ -3,15 +3,13 @@
 import { NotionBlock, NotionConnection, NotionDatabase, NotionPage, NotionRichText } from "../object-model/mod.ts";
 
 import { ServiceAccount } from "https://crux.land/5D1UrM#google-service-account@v2";
-import { deployFirebaseSite } from "https://crux.land/3CmzCW#firebase-hosting-deploy";
-import { Marked } from "https://deno.land/x/markdown@v2.0.0/mod.ts";
+import { deployFirebaseSite, SiteFile } from "https://crux.land/3CmzCW#firebase-hosting-deploy";
 import Mustache from 'https://deno.land/x/mustache@v0.3.0/mustache.mjs';
 import { fetchPhoto } from "./instagram.ts";
 import { emitPageHtml } from "../extract-html/mod.ts";
 
 const renderMustache = Mustache.render as unknown as (template: string, view: unknown) => string;
 
-type SiteFile = {path: string, body: Uint8Array};
 async function publishFirebaseSite(siteId: string, credentialPath: string, files: Iterable<SiteFile>) {
   const credential = await ServiceAccount.readFromFile(credentialPath);
   const token = await credential.issueToken("https://www.googleapis.com/auth/firebase");
@@ -39,7 +37,7 @@ async function loadContentNode(page: NotionPage): Promise<ContentNode> {
   //     const blobs = raw.Children.flatMap(x => x.Type === 'Blob' ? [x] : []);
   const {body, plainTitle, richTitle} = await emitPageHtml(page);
   return {
-    path: `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`,
+    filename: `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`,
     plainTitle, richTitle,
     section: page.findSelectProperty('Section'),
     publishedAt: page.findDateProperty('Publish date')?.start ?? null,
@@ -116,10 +114,14 @@ class BlogSite {
   }
   async rehostPhotos() {
     for (const photo of this.photos) {
-      const fullData = await fetch(photo.fullResUrl).then(x => x.arrayBuffer());
+      const photoPath = `/assets/photos/${photo.slug}.jpg`;
+      const rehostFrom = new URL(photoPath, 'https://danopia.net');
+      const fullData =
+        await fetch(rehostFrom).then(x => x.status == 200 ? x.arrayBuffer() : null) ??
+        await fetch(photo.fullResUrl).then(x => x.status == 200 ? x.arrayBuffer() : Promise.reject(`photo rehost: ${x.status}`));
       this.assets.push({
-        path: `/assets/photos/${photo.slug}.jpg`,
-        body: new Uint8Array(fullData),
+        path: photoPath,
+        body: new Uint8Array(fullData!),
       });
       photo.fullResUrl = `assets/photos/${photo.slug}.jpg`;
     }
@@ -254,14 +256,15 @@ class BlogSite {
     ];
     // const dateFormat = new Intl.DateTimeFormat('en-US', {dateStyle: "long"});
     this.posts.forEach(p => {
+      p.path = `posts/drafts/${p.filename}`;
       if (p.publishedAt) {
         const publishedYear = p.publishedAt.getUTCFullYear();
         p.publishDate = `${months[p.publishedAt.getUTCMonth()]} ${p.publishedAt.getUTCDate()}, ${publishedYear}`;
         // publishedAt.format('LL [at] LT');
         p.isOutdated = publishedYear < outdatedCutoff;
-        p.path = `posts/${publishedYear}/${p.path}`;
-      } else {
-        p.path = `posts/drafts/${p.path}`;
+        if (p.status == 'Published' || p.status == 'Archived') {
+          p.path = `posts/${publishedYear}/${p.filename}`;
+        }
       }
     });
     // posts.sort(function (a, b) {
@@ -289,9 +292,10 @@ class BlogSite {
 
     const renderContentNodes = (list: ContentNode[], layout: string) => {
       list.forEach(content => {
-        content.baseHref = reversePath(content.path);
+        const contentPath = content.path || content.filename;
+        content.baseHref = reversePath(contentPath);
         htmlFiles.push({
-          path: '/'+content.path,
+          path: `/${contentPath}`,
           body: this.renderPage(content, layout),
         });
       });
@@ -379,7 +383,8 @@ class BlogSite {
 }
 
 interface ContentNode {
-  path: string;
+  filename: string;
+  path?: string;
   // title: string;
   plainTitle: string;
   richTitle: string;
