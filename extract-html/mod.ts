@@ -147,6 +147,21 @@ class HtmlBlockScope {
 
 function formText(texts: NotionRichText['spans']) {
   const textWithTags = texts.flatMap(text => {
+    // Handle specific rich text spans that we care about
+    if (text.type === 'mention') {
+      if (text.mention.type === 'link_preview') {
+        const { url } = text.mention.link_preview;
+        // e.g. https://github.com/danopia/kube-pet-node
+        // TODO: better handling
+        return [{
+          text: encode(url.split('/').slice(-1)[0]).replace(/\r?\n/g, '\n<br/>'),
+          tags: new Set([
+            `<a href="${encode(url)}" target="_blank">`,
+          ]),
+        }];
+      }
+    }
+
     assertEquals(text.type, 'text');
     if (text.type !== 'text') return [];
 
