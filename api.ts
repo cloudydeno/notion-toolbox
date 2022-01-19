@@ -1,3 +1,5 @@
+import { serve } from "https://deno.land/std@0.120.0/http/server.ts";
+
 import DatadogApi from "https://deno.land/x/datadog_api@v0.1.5/mod.ts";
 import { MetricSubmission } from "https://deno.land/x/datadog_api@v0.1.5/v1/metrics.ts";
 const datadog = DatadogApi.fromEnvironment(Deno.env);
@@ -88,12 +90,6 @@ class RequestImpl implements RequestContext {
 }
 
 
-addEventListener("fetch", async (event) => {
-  const request = (event as any).request as Request;
-  const response = await handleRequest(request).catch(renderError);
-  response.headers.set("server", "notion-api-toolbox/v0.4.0");
-  (event as any).respondWith(response);
-});
 function renderError(err: Error) {
   const msg = err.stack || err.message || JSON.stringify(err);
   console.error('!!!', msg);
@@ -108,3 +104,10 @@ function ResponseText(status: number, body: string) {
   headers.set('content-type', "text/plain; charset=utf-8");
   return new Response(body, { status, headers });
 }
+
+console.log("Listening on http://localhost:8000");
+serve(async (request) => {
+  const response = await handleRequest(request).catch(renderError);
+  response.headers.set("server", "notion-api-toolbox/v0.4.0");
+  return response;
+});
