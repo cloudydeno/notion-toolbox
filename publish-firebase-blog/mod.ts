@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-env=NOTION_KEY,GOOGLE_APPLICATION_CREDENTIALS --allow-read
+#!/usr/bin/env -S deno run --allow-net --allow-env=NOTION_KEY,GOOGLE_APPLICATION_CREDENTIALS,NOTION_TOOLBOX_URL --allow-read
 
 import { NotionBlock, NotionConnection, NotionDatabase, NotionPage, NotionRichText } from "../object-model/mod.ts";
 
@@ -35,6 +35,34 @@ async function loadContentNode(page: NotionPage): Promise<ContentNode> {
   //     if (raw.Type !== 'Folder') throw new Error(`BUG`);
   //     const data = readStructure(raw.Children);
   //     const blobs = raw.Children.flatMap(x => x.Type === 'Blob' ? [x] : []);
+  // console.log(page.knownSnapshot);
+
+  const extractServer = Deno.env.get("NOTION_TOOLBOX_URL");
+  if (extractServer) {
+    const auth = Deno.env.get("NOTION_KEY") ?? '';
+    const htmlResp = await fetch(new URL(`extract-html?auth=${auth}&page=${page.id}&edited=${page.snapshot.last_edited_time}`, extractServer));
+    if (htmlResp.status !== 200) throw new Error(`extract-html API gave ${htmlResp.status} for ${page.id}`);
+    const text = await htmlResp.text();
+
+    const marker = '\n<!-- start body -->\n';
+    const head = text.slice(0, text.indexOf(marker));
+    const body = text.slice(head.length + marker.length);
+    const plainTitle = head.match(/<title>(.+)<\/title>/)?.[1];
+    const richTitle = head.match(/<h1>(.+)<\/h1>/)?.[1];
+    if (!plainTitle || !richTitle) throw new Error(`Failed to find titles in HTML head`);
+
+    const filename = `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`;
+    return {
+      filename, path: filename,
+      plainTitle, richTitle,
+      section: page.findSelectProperty('Section') ?? null,
+      publishedAt: page.findDateProperty('Publish date')?.start ?? null,
+      status: page.findSelectProperty('Status')?.name as any,
+      innerHtml: body,
+      // raw: blobs,
+    };
+  }
+
   const {body, plainTitle, richTitle} = await emitPageHtml(page);
   const filename = `${page.findRichTextProperty('URL Slug')?.asPlainText || page.id}.html`;
   return {
