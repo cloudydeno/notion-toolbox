@@ -1,4 +1,4 @@
-import { Client } from "https://deno.land/x/notion_sdk@v0.4.9/src/mod.ts"
+import { Client } from "https://deno.land/x/notion_sdk@v0.4.12/src/mod.ts"
 import {
   GetBlockResponse,
   GetDatabaseResponse,
@@ -9,7 +9,7 @@ import {
   UpdateBlockParameters,
   UpdateDatabaseParameters,
   UpdatePageParameters,
-} from "https://deno.land/x/notion_sdk@v0.4.9/src/api-endpoints.ts"
+} from "https://deno.land/x/notion_sdk@v0.4.12/src/api-endpoints.ts"
 
 export class NotionConnection {
   constructor(
@@ -84,7 +84,7 @@ export class NotionConnection {
     }
   }
 }
-type SearchResult = SearchResponse['results'][number];
+type SearchResult = Extract<SearchResponse['results'][number], {parent: {}}>;
 
 export class NotionObject {
   constructor(
@@ -112,23 +112,24 @@ export class NotionBlockParent extends NotionObject {
       start_cursor,
       block_id: this.id,
     }))) {
-      yield new NotionBlock(this.api, result.id, result);
+      yield new NotionBlock(this.api, result.id, result as BlockData);
     }
   }
 }
 
+type BlockData = Extract<GetBlockResponse, {type: string}>;
 export class NotionBlock extends NotionBlockParent {
   constructor(
     api: Client,
     public readonly id: string,
-    public knownSnapshot?: GetBlockResponse,
+    public knownSnapshot?: BlockData,
   ) {
     super(api, id);
   }
 
   async ensureSnapshot() {
     if (this.knownSnapshot) return this.knownSnapshot;
-    return this.knownSnapshot = await this.api.blocks.retrieve({ block_id: this.id });
+    return this.knownSnapshot = await this.api.blocks.retrieve({ block_id: this.id }) as BlockData;
   }
   get snapshot() {
     if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
@@ -147,18 +148,19 @@ export class NotionBlock extends NotionBlockParent {
   }
 }
 
+type PageData = Extract<GetPageResponse, {properties: {}}>;
 export class NotionPage extends NotionBlockParent {
   constructor(
     api: Client,
     id: string,
-    public knownSnapshot?: GetPageResponse,
+    public knownSnapshot?: PageData,
   ) {
     super(api, id);
   }
 
   async ensureSnapshot() {
     if (this.knownSnapshot) return this.knownSnapshot;
-    return this.knownSnapshot = await this.api.pages.retrieve({ page_id: this.id });
+    return this.knownSnapshot = await this.api.pages.retrieve({ page_id: this.id }) as PageData;
   }
   get snapshot() {
     if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
@@ -174,7 +176,7 @@ export class NotionPage extends NotionBlockParent {
     return Object
       .entries(this.snapshot.properties)
       .find(x => x[1].type == type && (name == null || name == x[0]))
-    ?.[1] as (GetPageResponse['properties'][string] & {type: T}) | undefined;
+    ?.[1] as (PageData['properties'][string] & {type: T}) | undefined;
   }
 
   // exactly one of these props so a getter seems more intuitive
@@ -220,7 +222,7 @@ export class NotionPage extends NotionBlockParent {
 export class NotionRichText {
   constructor(
     // TODO: probably a shorter path to this?
-    public spans: (GetPageResponse['properties'][string] & {type: 'title'})['title'],
+    public spans: (PageData['properties'][string] & {type: 'title'})['title'],
   ) {}
 
   get asPlainText() {
@@ -228,11 +230,12 @@ export class NotionRichText {
   }
 }
 
+type DatabaseData = Extract<GetDatabaseResponse, {title: {}}>;
 export class NotionDatabase extends NotionObject {
   constructor(
     api: Client,
     public readonly id: string,
-    public knownSnapshot?: GetDatabaseResponse,
+    public knownSnapshot?: DatabaseData,
   ) {
     super(api);
   }
@@ -244,13 +247,13 @@ export class NotionDatabase extends NotionObject {
         start_cursor,
         database_id: this.id,
     }))) {
-      yield new NotionPage(this.api, result.id, result);
+      yield new NotionPage(this.api, result.id, result as PageData);
     }
   }
 
   async ensureSnapshot() {
     if (this.knownSnapshot) return this.knownSnapshot;
-    return this.knownSnapshot = await this.api.databases.retrieve({ database_id: this.id });
+    return this.knownSnapshot = await this.api.databases.retrieve({ database_id: this.id }) as DatabaseData;
   }
   get snapshot() {
     if (!this.knownSnapshot) throw new Error(`BUG: Snapshot wasn't loaded, call .ensureSnapshot first`)
