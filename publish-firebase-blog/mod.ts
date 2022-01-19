@@ -10,6 +10,12 @@ import { emitPageHtml } from "../extract-html/mod.ts";
 
 const renderMustache = Mustache.render as unknown as (template: string, view: unknown) => string;
 
+function log (strings: TemplateStringsArray, ...inputs: unknown[]) {
+  const escapedInputs = inputs.map(x => typeof x === 'number' ? x : JSON.stringify(x));
+  console.debug(`[${new Date().toLocaleTimeString()}]`,
+    ...strings.flatMap((x, idx) => idx < escapedInputs.length ? [x.trim(), escapedInputs[idx]] : [x.trim()]));
+}
+
 async function publishFirebaseSite(siteId: string, credentialPath: string, files: Iterable<SiteFile>) {
   const credential = await ServiceAccount.readFromFile(credentialPath);
   const token = await credential.issueToken("https://www.googleapis.com/auth/firebase");
@@ -94,27 +100,27 @@ class BlogSite {
   siteSubtitle: string = 'TODO';
 
   async loadPosts(db: NotionDatabase) {
-    console.log('Loading posts...');
+    log `Loading posts...`;
     this.posts.length = 0;
     for await (const post of db.queryAllPages()) {
       this.posts.push(await loadContentNode(post));
     }
-    console.log('Loaded', this.posts.length, 'posts');
+    log `Loaded ${this.posts.length} posts`;
     this.posts.sort(comparePublishedAt);
   }
 
   async loadPages(db: NotionDatabase) {
-    console.log('Loading pages...');
+    log `Loading pages...`;
     this.pages.length = 0;
     for await (const page of db.queryAllPages()) {
       this.pages.push(await loadContentNode(page));
     }
-    console.log('Loaded', this.pages.length, 'pages');
+    log `Loaded ${this.pages.length} pages`;
     this.pages.sort(comparePublishedAt);
   }
 
   async loadPhotos(db: NotionDatabase) {
-    console.log('Loading photos...');
+    log `Loading photos...`;
     for await (const photo of db.queryAllPages()) {
       const originalUrl = photo.findUrlProperty();
       if (!originalUrl) continue;
@@ -157,7 +163,7 @@ class BlogSite {
   }
 
   async loadAssets(db: NotionDatabase) {
-    console.log('Loading assets...');
+    log `Loading assets...`;
     for await (const asset of db.queryAllPages()) {
       let codeBlock: (NotionBlock['snapshot'] & {type: 'code'})['code'] | null = null;
       for await (const block of asset.listAllChildren()) {
@@ -178,7 +184,7 @@ class BlogSite {
   }
 
   async loadTemplates(db: NotionDatabase) {
-    console.log('Loading templates...');
+    log `Loading templates...`;
     for await (const template of db.queryAllPages()) {
       let codeBlock: (NotionBlock['snapshot'] & {type: 'code'})['code'] | null = null;
       for await (const block of template.listAllChildren()) {
@@ -198,10 +204,12 @@ class BlogSite {
   async runNow(root: NotionPage) {
     const startTime = Date.now();
 
-    console.log('Loading blog configuration...');
+    log `Loading blog configuration...`;
 
     for await (const b of root.listAllChildren())  {
       if (b.snapshot?.type == 'child_database') {
+        const timerGroup = `${new Date().toLocaleTimeString().replace(/./g, ' ')}   Load ${b.snapshot.child_database.title}`;
+        console.time(timerGroup);
         switch (b.snapshot.child_database.title) {
           case 'Blog Posts': {
             await this.loadPosts(b.asDatabase);
@@ -220,9 +228,10 @@ class BlogSite {
             await this.loadTemplates(b.asDatabase);
           }; break;
           default: {
-            console.log('TODO', b.id, b.snapshot.child_database.title);
+            log `TODO ${b.id} ${b.snapshot.child_database.title}`;
           }; break;
         }
+        console.timeEnd(timerGroup);
       } else if (b.snapshot?.type == 'heading_2') {
       } else if (b.snapshot?.type == 'bulleted_list_item') {
         const {text} = b.snapshot.bulleted_list_item;
@@ -231,10 +240,10 @@ class BlogSite {
           const val = text[1].plain_text;
           this.prefs.set(key, val);
         } else {
-          console.log('TODO', b.snapshot.bulleted_list_item);
+          log `TODO ${b.snapshot.bulleted_list_item}`;
         }
       } else {
-        console.log('TODO', b)
+        log `TODO ${b}`;
       }
     }
 
@@ -301,9 +310,9 @@ class BlogSite {
     // });
     const publishedPosts = this.posts.filter(x => x.publishedAt
       && (x.status == 'Published' || x.status == 'Archived'));
-    console.log('Found', publishedPosts.length, 'published posts');
+    log `Found ${publishedPosts.length} published posts`;
 
-    console.log('Generating blog files...');
+    log `Generating blog files...`;
 
     function reversePath(path: string) {
       if (path.includes('/')) {
@@ -373,13 +382,13 @@ class BlogSite {
     }
 
     // console.log(htmlFiles);
-    console.log('Uploading', htmlFiles.length, 'files to web hosting...');
+    log `Uploading ${htmlFiles.length} files to web hosting...`;
 
     await publishFirebaseSite('blog-bbudj4be', Deno.env.get('GOOGLE_APPLICATION_CREDENTIALS')!, htmlFiles);
 
     const endTime = Date.now();
     const elapsedSecs = Math.round((endTime - startTime) / 1000);
-    console.log('Blog published in', elapsedSecs, 'seconds :)');
+    log `Blog published in ${elapsedSecs} seconds :)`;
 
   }
 
