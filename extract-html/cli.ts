@@ -35,7 +35,7 @@ switch (true) {
 }
 
 async function writePage(page: NotionPage) {
-  const filePath = `${page.title.asPlainText}.html`;
+  const filePath = `${encodeURIComponent(page.title.asPlainText).replaceAll('%20', ' ')}.html`;
   const {body, plainTitle, richTitle} = await emitPageHtml(page);
   await Deno.writeTextFile(new URL(filePath, import.meta.url), [
     '<!doctype html>',

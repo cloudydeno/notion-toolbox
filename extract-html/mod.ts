@@ -138,6 +138,45 @@ class HtmlBlockScope {
         console.error('TODO: embed', JSON.stringify(block, null, 2))
       }
     // } else if (block.type === 'column_list') {
+    } else if (block.type === 'table') {
+      this.ensureParentIs(null);
+      this.lines.push('<table class="simple-table">');
+      if (block.has_children) {
+        const scope = new HtmlBlockScope();
+        let isHead = block.table.has_column_header;
+        scope.lines.push(isHead ? `<thead>` : `<tbody>`);
+        for await (const child of ref.listAllChildren()) {
+          const childData = await child.ensureSnapshot();
+          if (childData.type !== 'table_row') {
+            await scope.writeBlock(child);
+            continue;
+          }
+          if (isHead) {
+            scope.lines.push('<tr>');
+            for (const cell of childData.table_row.cells) {
+              scope.lines.push(`<th>${formText(cell)}</th>`);
+            }
+            scope.lines.push('</tr>');
+            scope.lines.push(`</thead>`);
+            scope.lines.push(`<tbody>`);
+            isHead = false;
+          } else {
+            scope.lines.push('<tr>');
+            for (const cell of childData.table_row.cells) {
+              const tag = (block.table.has_row_header
+                 && cell == childData.table_row.cells[0])
+                  ? 'th' : 'td';
+              scope.lines.push(`<${tag}>${formText(cell)}</${tag}>`);
+            }
+            scope.lines.push('</tr>');
+          }
+        }
+        scope.lines.push(isHead ? `</thead>` : `</tbody>`);
+        this.lines.push(scope.stringify());
+      }
+      this.lines.push('</table>');
+    } else if (block.type === 'table_row') {
+      throw new Error(`Found a table_row outside of a table`);
     } else {
       console.error('TODO block:', JSON.stringify(block, null, 2))
       // console.error('TODO:', block.id, block.type, block.has_children);
