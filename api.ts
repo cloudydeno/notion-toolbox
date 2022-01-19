@@ -5,6 +5,7 @@ import { MetricSubmission } from "https://deno.land/x/datadog_api@v0.1.5/v1/metr
 const datadog = DatadogApi.fromEnvironment(Deno.env);
 
 import { makeCalendarResponse } from "./database-as-ical/mod.ts";
+import { makeExtractHtmlResponse } from "./extract-html/api.ts";
 import { NotionConnection } from "./object-model/mod.ts";
 import { RequestContext } from "./types.ts";
 
@@ -14,6 +15,9 @@ async function routeRequest(ctx: RequestContext): Promise<Response> {
   if (ctx.path === '/database-as-ical') {
     ctx.metricTags.push('http_controller:database-as-ical');
     return await makeCalendarResponse(ctx);
+  } else if (ctx.path === '/extract-html') {
+    ctx.metricTags.push('http_controller:extract-html');
+    return await makeExtractHtmlResponse(ctx);
   } else if (ctx.path === '/') {
     ctx.metricTags.push('http_controller:index');
     return ResponseText(200, `Notion Toolbox :)\n\n${repoUrl}`);
