@@ -24,7 +24,7 @@ export async function makeExtractHtmlResponse(req: RequestContext) {
   headers.set('content-type', `text/html; charset=utf-8`);
   headers.set('content-disposition', `inline; filename="${slug ?? 'page'}.html"`);
   if (page.snapshot.icon?.type == 'emoji') {
-    headers.set('x-page-emoji', page.snapshot.icon.emoji);
+    headers.set('x-page-emoji', encodeURI(page.snapshot.icon.emoji));
   }
   // 'x-plain-title': cacheHead?.Metadata?.['plain-title'] ?? '',
   headers.set('last-modified', page.lastEditedTime.toUTCString());
