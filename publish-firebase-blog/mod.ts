@@ -2,7 +2,7 @@
 
 import { NotionBlock, NotionConnection, NotionDatabase, NotionPage, NotionRichText } from "../object-model/mod.ts";
 
-import { ServiceAccount } from "https://crux.land/5D1UrM#google-service-account@v2";
+import { ServiceAccount } from "https://crux.land/CtNDQ#google-service-account";
 import { deployFirebaseSite, SiteFile } from "https://crux.land/3CmzCW#firebase-hosting-deploy";
 import Mustache from 'https://deno.land/x/mustache@v0.3.0/mustache.mjs';
 import { fetchPhoto } from "./instagram.ts";
