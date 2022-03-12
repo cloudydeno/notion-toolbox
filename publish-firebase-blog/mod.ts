@@ -172,7 +172,7 @@ class BlogSite {
         }
       }
       if (codeBlock) {
-        const rawText = new NotionRichText(codeBlock.text).asPlainText;
+        const rawText = new NotionRichText(codeBlock.rich_text).asPlainText;
         this.assets.push({
           path: asset.title.asPlainText,
           body: new TextEncoder().encode(rawText),
@@ -193,7 +193,7 @@ class BlogSite {
         }
       }
       if (codeBlock) {
-        const rawText = new NotionRichText(codeBlock.text).asPlainText;
+        const rawText = new NotionRichText(codeBlock.rich_text).asPlainText;
         this.templates.set(template.title.asPlainText, rawText);
       } else {
         console.warn("Template", template.url, "didn't have a code block!");
@@ -234,10 +234,10 @@ class BlogSite {
         console.timeEnd(timerGroup);
       } else if (b.snapshot?.type == 'heading_2') {
       } else if (b.snapshot?.type == 'bulleted_list_item') {
-        const {text} = b.snapshot.bulleted_list_item;
-        if (text.length == 2) {
-          const key = text[0].plain_text.replace(/: *$/, '');
-          const val = text[1].plain_text;
+        const {rich_text} = b.snapshot.bulleted_list_item;
+        if (rich_text.length == 2) {
+          const key = rich_text[0].plain_text.replace(/: *$/, '');
+          const val = rich_text[1].plain_text;
           this.prefs.set(key, val);
         } else {
           log `TODO ${b.snapshot.bulleted_list_item}`;

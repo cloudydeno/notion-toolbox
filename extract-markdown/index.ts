@@ -54,30 +54,30 @@ async function* writeBlock(ref: NotionBlock): AsyncGenerator<string> {
   const block = await ref.ensureSnapshot();
   if (block.type === 'paragraph') {
     assertEquals(block.has_children, false);
-    yield formText(block.paragraph.text);
+    yield formText(block.paragraph.rich_text);
   } else if (block.type === 'heading_1') {
     assertEquals(block.has_children, false);
-    yield '## '+formText(block.heading_1.text);
+    yield '## '+formText(block.heading_1.rich_text);
   } else if (block.type === 'heading_2') {
     assertEquals(block.has_children, false);
-    yield '### '+formText(block.heading_2.text);
+    yield '### '+formText(block.heading_2.rich_text);
   } else if (block.type === 'heading_3') {
     assertEquals(block.has_children, false);
-    yield '#### '+formText(block.heading_3.text);
+    yield '#### '+formText(block.heading_3.rich_text);
   } else if (block.type === 'quote') {
     assertEquals(block.has_children, false);
-    yield '> '+formText(block.quote.text);
+    yield '> '+formText(block.quote.rich_text);
   } else if (block.type === 'code') {
     assertEquals(block.has_children, false);
-    assertEquals(block.code.text.length, 1);
-    assertEquals(block.code.text[0].type, 'text');
+    assertEquals(block.code.rich_text.length, 1);
+    assertEquals(block.code.rich_text[0].type, 'text');
     yield '```'+block.code.language;
-    for (const x of block.code.text[0].plain_text.split(/\r?\n+/)) {
+    for (const x of block.code.rich_text[0].plain_text.split(/\r?\n+/)) {
       yield x;
     }
     yield '```';
   } else if (block.type === 'numbered_list_item') {
-    yield '1.  ' + formText(block.numbered_list_item.text);
+    yield '1.  ' + formText(block.numbered_list_item.rich_text);
     if (block.has_children) {
       for await (const child of ref.listAllChildren()) {
         yield '';
@@ -87,7 +87,7 @@ async function* writeBlock(ref: NotionBlock): AsyncGenerator<string> {
       }
     }
   } else if (block.type === 'bulleted_list_item') {
-    yield '*   ' + formText(block.bulleted_list_item.text);
+    yield '*   ' + formText(block.bulleted_list_item.rich_text);
     if (block.has_children) {
       for await (const child of ref.listAllChildren()) {
         yield '';

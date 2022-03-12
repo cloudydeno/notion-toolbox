@@ -39,7 +39,7 @@ class HtmlBlockScope {
     const block = await ref.ensureSnapshot();
     if (block.type === 'paragraph') {
       this.ensureParentIs(null);
-      this.lines.push(`<p>${formText(block.paragraph.text)}</p>`);
+      this.lines.push(`<p>${formText(block.paragraph.rich_text)}</p>`);
       if (block.has_children) {
         this.lines.push('<div style="padding-left: 1.5em;">');
         for await (const child of ref.listAllChildren()) {
@@ -54,18 +54,18 @@ class HtmlBlockScope {
     } else if (block.type === 'heading_1') {
       this.ensureParentIs(null);
       assertEquals(block.has_children, false);
-      this.lines.push(`<h2 ${idAttr}>${formText(block.heading_1.text)}</h2>`);
+      this.lines.push(`<h2 ${idAttr}>${formText(block.heading_1.rich_text)}</h2>`);
     } else if (block.type === 'heading_2') {
       this.ensureParentIs(null);
       assertEquals(block.has_children, false);
-      this.lines.push(`<h3 ${idAttr}>${formText(block.heading_2.text)}</h3>`);
+      this.lines.push(`<h3 ${idAttr}>${formText(block.heading_2.rich_text)}</h3>`);
     } else if (block.type === 'heading_3') {
       this.ensureParentIs(null);
       assertEquals(block.has_children, false);
-      this.lines.push(`<h4 ${idAttr}>${formText(block.heading_3.text)}</h4>`);
+      this.lines.push(`<h4 ${idAttr}>${formText(block.heading_3.rich_text)}</h4>`);
     } else if (block.type === 'quote') {
       this.lines.push(`<blockquote>`);
-      this.lines.push(`<p>${formText(block.quote.text)}</p>`);
+      this.lines.push(`<p>${formText(block.quote.rich_text)}</p>`);
       if (block.has_children) {
         const scope = new HtmlBlockScope();
         for await (const child of ref.listAllChildren()) {
@@ -76,7 +76,7 @@ class HtmlBlockScope {
       this.lines.push(`</blockquote>`);
     } else if (block.type === 'toggle') {
       this.lines.push(`<details>`);
-      this.lines.push(`<summary ${idAttr}>${formText(block.toggle.text)}</summary>`);
+      this.lines.push(`<summary ${idAttr}>${formText(block.toggle.rich_text)}</summary>`);
       if (block.has_children) {
         const scope = new HtmlBlockScope();
         for await (const child of ref.listAllChildren()) {
@@ -90,7 +90,7 @@ class HtmlBlockScope {
     } else if (block.type === 'code') {
       this.ensureParentIs(null);
       assertEquals(block.has_children, false);
-      const codeText = new NotionRichText(block.code.text);
+      const codeText = new NotionRichText(block.code.rich_text);
       if (block.code.language === 'html') {
         // TODO: gate this better, such as checking 'caption' once we have that
         this.lines.push(codeText.asPlainText);
@@ -99,7 +99,7 @@ class HtmlBlockScope {
       }
     } else if (block.type === 'numbered_list_item') {
       this.ensureParentIs('ol');
-      this.lines.push('<li>' + formText(block.numbered_list_item.text));
+      this.lines.push('<li>' + formText(block.numbered_list_item.rich_text));
       if (block.has_children) {
         const scope = new HtmlBlockScope();
         for await (const child of ref.listAllChildren()) {
@@ -110,7 +110,7 @@ class HtmlBlockScope {
       this.lines.push('</li>');
     } else if (block.type === 'bulleted_list_item') {
       this.ensureParentIs('ul');
-      this.lines.push('<li>' + formText(block.bulleted_list_item.text));
+      this.lines.push('<li>' + formText(block.bulleted_list_item.rich_text));
       if (block.has_children) {
         const scope = new HtmlBlockScope();
         for await (const child of ref.listAllChildren()) {
