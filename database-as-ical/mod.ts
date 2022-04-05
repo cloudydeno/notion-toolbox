@@ -58,7 +58,7 @@ export async function* emitCalendar(db: NotionDatabase) {
 }
 
 function determineEndDate(dateProp: { start: Date; end: Date|null; hasTime: boolean; }) {
-  const endDate = new Date(dateProp.start);
+  const endDate = new Date(dateProp.end ?? dateProp.start);
   if (dateProp.end) {
     if (dateProp.hasTime) return dateProp.end;
     endDate.setDate(endDate.getDate() + 1);
