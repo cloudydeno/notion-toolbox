@@ -58,9 +58,13 @@ export async function* emitCalendar(db: NotionDatabase) {
 }
 
 function determineEndDate(dateProp: { start: Date; end: Date|null; hasTime: boolean; }) {
-  if (dateProp.end) return dateProp.end;
   const endDate = new Date(dateProp.start);
-  endDate.setHours(endDate.getHours() + (dateProp.hasTime ? 1 : 24));
+  if (dateProp.end) {
+    if (dateProp.hasTime) return dateProp.end;
+    endDate.setDate(endDate.getDate() + 1);
+  } else {
+    endDate.setHours(endDate.getHours() + (dateProp.hasTime ? 1 : 24));
+  }
   return endDate;
 }
 
