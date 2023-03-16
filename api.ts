@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.120.0/http/server.ts";
+import { httpTracer, trace } from "./tracer.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 import DatadogApi from "https://deno.land/x/datadog_api@v0.1.5/mod.ts";
 import { MetricSubmission } from "https://deno.land/x/datadog_api@v0.1.5/v1/metrics.ts";
@@ -12,16 +13,22 @@ import { RequestContext } from "./types.ts";
 const repoUrl = 'https://github.com/cloudydeno/notion-toolbox';
 
 async function routeRequest(ctx: RequestContext): Promise<Response> {
+  const httpSpan = trace.getActiveSpan();
+
   if (ctx.path === '/database-as-ical') {
+    httpSpan?.setAttribute('http.route', 'database-as-ical');
     ctx.metricTags.push('http_controller:database-as-ical');
     return await makeCalendarResponse(ctx);
   } else if (ctx.path === '/extract-html') {
+    httpSpan?.setAttribute('http.route', 'extract-html');
     ctx.metricTags.push('http_controller:extract-html');
     return await makeExtractHtmlResponse(ctx);
   } else if (ctx.path === '/') {
+    httpSpan?.setAttribute('http.route', 'index');
     ctx.metricTags.push('http_controller:index');
     return ResponseText(200, `Notion Toolbox :)\n\n${repoUrl}`);
   } else {
+    httpSpan?.setAttribute('http.route', '404');
     return ResponseText(404, 'Not found');
   }
 }
@@ -110,8 +117,8 @@ function ResponseText(status: number, body: string) {
 }
 
 console.log("Listening on http://localhost:8000");
-serve(async (request) => {
+serve(httpTracer(async (request) => {
   const response = await handleRequest(request).catch(renderError);
   response.headers.set("server", "notion-api-toolbox/v0.4.0");
   return response;
-});
+}));
