@@ -35,10 +35,17 @@ async function routeRequest(ctx: RequestContext): Promise<Response> {
 
 async function handleRequest(request: Request): Promise<Response> {
   const ctx = new RequestImpl(request);
+  trace.getActiveSpan()?.setAttribute('http.wants_html', ctx.wantsHtml);
   console.log(request.method, ctx.path);
 
   ctx.incrementCounter('http.requests', 1);
   try {
+    if (ctx.notion) {
+      const botUser = await ctx.notion.api.users.me({});
+      ctx.metricTags.push(`notion_token:${botUser.name}`);
+      trace.getActiveSpan()?.setAttribute('notion.bot_user', botUser.name);
+    }
+
     const resp = await routeRequest(ctx).catch(renderError);
     ctx.metricTags.push(`http_status:${resp.status}`);
     return resp;
@@ -82,11 +89,6 @@ class RequestImpl implements RequestContext {
     });
   }
   async flushMetrics() {
-    if (this.notion) {
-      const botUser = await this.notion.api.users.me({});
-      this.metricTags.push(`notion_token:${botUser.name}`);
-    }
-
     const metrics = this.metrics.map(x => ({ ...x,
       tags: [...(x.tags || []), ...this.metricTags],
     }));

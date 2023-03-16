@@ -3,6 +3,7 @@
 import { readableStreamFromIterable } from "https://deno.land/std@0.115.0/streams/conversion.ts";
 import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import { NotionConnection, NotionDatabase } from "../object-model/mod.ts";
+import { trace } from "../tracer.ts";
 import { RequestContext } from "../types.ts";
 import { CalendarObject } from "./ical.ts";
 
@@ -14,6 +15,7 @@ export async function makeCalendarResponse(req: RequestContext) {
     query: req.params.get('query') ?? undefined,
   });
   if (!db) return new Response('Database not found', {status: 404});
+  trace.getActiveSpan()?.setAttribute('notion.database', db.title.asPlainText);
 
   // how often does google calendar update anyway?
   req.metricTags.push(`notion_db:${db.title.asPlainText}`);
