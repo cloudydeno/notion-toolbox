@@ -3,7 +3,9 @@ export { httpTracer, trace };
 
 export const provider = new DenoTracerProvider({
   resource: new Resource({
+    'service.name': 'notion-toolbox',
     'service.version': Deno.env.get('DENO_DEPLOYMENT_ID'),
+    'deployment.environment': 'production',
     'deployment.region': Deno.env.get('DENO_REGION'),
   }),
   instrumentations: [
