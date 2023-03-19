@@ -12,10 +12,10 @@ export async function makeExtractHtmlResponse(req: RequestContext) {
   const pageId = req.params.get('page');
   if (!pageId) return new Response(`Need ?page=<pageid>`, {status: 400});
 
-  const notion = await req.getNotion();
+  if (!req.notion) return new Response('auth= key required', {status: 400});
 
   // find the desired page
-  const page = await notion.pageById(pageId);
+  const page = await req.notion.pageById(pageId);
   if (!page) return new Response('Page not found', {status: 404});
 
   const headers = new Headers();

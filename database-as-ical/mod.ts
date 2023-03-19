@@ -8,23 +8,18 @@ import { RequestContext } from "../types.ts";
 import { CalendarObject } from "./ical.ts";
 
 export async function makeCalendarResponse(req: RequestContext) {
-  const notion = await req.getNotion();
+  if (!req.notion) return new Response('auth= key required', {status: 400});
 
   // find the desired database
-  const db = await notion.searchForFirstDatabase({
+  const db = await req.notion.searchForFirstDatabase({
     query: req.params.get('query') ?? undefined,
   });
   if (!db) return new Response('Database not found', {status: 404});
   trace.getActiveSpan()?.setAttribute('notion.database', db.title.asPlainText);
 
-  // how often does google calendar update anyway?
-  req.metricTags.push(`notion_db:${db.title.asPlainText}`);
-  req.incrementCounter('notion.database_as_ical.render', 1);
-
   // stream the iCal down
   const dataStream = readableStreamFromIterable(emitCalendar(db));
-  const encoder = new TextEncoder();
-  return new Response(dataStream.pipeThrough(map(x => encoder.encode(x))), {
+  return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
     headers: {
       'content-type': `text/${req.wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,
       'content-disposition': 'inline; filename=calendar.ics',
@@ -42,9 +37,11 @@ export async function* emitCalendar(db: NotionDatabase) {
     .string('X-PUBLISHED-TTL', 'PT1H')
   yield cal.flush();
 
+  let eventCount = 0;
   for await (const page of db.queryAllPages()) {
     const dateProp = page.findDateProperty();
     if (!dateProp) continue;
+    eventCount++;
 
     yield new CalendarObject('VEVENT')
       .string('UID', `${page.id}@notion.so`)
@@ -55,6 +52,8 @@ export async function* emitCalendar(db: NotionDatabase) {
       .string('DESCRIPTION', page.url)
       .end().flush();
   }
+
+  trace.getActiveSpan()?.setAttribute('app.entries_returned', eventCount);
 
   yield cal.end().flush();
 }

@@ -4,10 +4,6 @@ export interface RequestContext {
   readonly original: Request;
   readonly path: string;
   readonly params: URLSearchParams;
+  readonly notion: NotionConnection | null;
   get wantsHtml(): boolean;
-
-  getNotion(): Promise<NotionConnection>;
-
-  readonly metricTags: Array<string>;
-  incrementCounter(name: string, value: number): void;
 }
