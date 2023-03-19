@@ -1,4 +1,4 @@
-import { Client } from "https://deno.land/x/notion_sdk@v1.0.3/src/mod.ts"
+import { Client } from "https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts"
 import {
   GetBlockResponse,
   GetDatabaseResponse,
@@ -9,7 +9,7 @@ import {
   UpdateBlockParameters,
   UpdateDatabaseParameters,
   UpdatePageParameters,
-} from "https://deno.land/x/notion_sdk@v1.0.3/src/api-endpoints.ts"
+} from "https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts"
 
 export class NotionConnection {
   constructor(
