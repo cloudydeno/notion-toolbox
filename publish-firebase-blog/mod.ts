@@ -2,8 +2,8 @@
 
 import { NotionBlock, NotionConnection, NotionDatabase, NotionPage, NotionRichText } from "../object-model/mod.ts";
 
-import { ServiceAccount } from "https://crux.land/CtNDQ#google-service-account";
-import { deployFirebaseSite, SiteFile } from "https://crux.land/3CmzCW#firebase-hosting-deploy";
+import { ServiceAccount } from "https://crux.land/32WBxC#google-service-account";
+import { deployFirebaseSite, SiteFile } from "https://crux.land/2rY57Q#firebase-hosting-deploy";
 import Mustache from 'https://deno.land/x/mustache@v0.3.0/mustache.mjs';
 import { fetchPhoto } from "./instagram.ts";
 import { emitPageHtml } from "../extract-html/mod.ts";
@@ -18,7 +18,10 @@ function log (strings: TemplateStringsArray, ...inputs: unknown[]) {
 
 async function publishFirebaseSite(siteId: string, credentialPath: string, files: Iterable<SiteFile>) {
   const credential = await ServiceAccount.readFromFile(credentialPath);
-  const token = await credential.issueToken("https://www.googleapis.com/auth/firebase");
+  const token = await credential.issueToken([
+    "https://www.googleapis.com/auth/iam",
+    "https://www.googleapis.com/auth/firebase",
+  ]);
   const release = await deployFirebaseSite({
     siteId, files,
     ...(Deno.args.includes('--publish') ? {} : {
@@ -28,7 +31,7 @@ async function publishFirebaseSite(siteId: string, credentialPath: string, files
         ttl: '259200s', // 3d
       },
     }),
-    accessToken: token.access_token,
+    accessToken: token.accessToken,
   });
   return release.name;
 }
@@ -122,7 +125,8 @@ class BlogSite {
   async loadPhotos(db: NotionDatabase) {
     log `Loading photos...`;
     for await (const photo of db.queryAllPages()) {
-      const originalUrl = photo.findUrlProperty();
+      console.log('photo:', photo.knownSnapshot?.properties);
+      const originalUrl = photo.findUrlProperty('Original URL');
       if (!originalUrl) continue;
       let cachedData = photo.findRichTextProperty('Cached data')?.asPlainText;
       if (!cachedData) {
@@ -146,6 +150,7 @@ class BlogSite {
         slug: photo.snapshot.url.split('/').slice(3).join('/'),
       });
     }
+    log `Loaded ${this.photos.length} photos`;
   }
   async rehostPhotos() {
     for (const photo of this.photos) {
@@ -341,7 +346,8 @@ class BlogSite {
     renderContentNodes(this.pages, 'Page');
     renderContentNodes(this.posts, 'Post');
 
-    const yearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+    const oneYear = 365 * 24 * 60 * 60 * 1000;
+    const recentPostCutoff = Date.now() - (2 * oneYear);
     htmlFiles.push({
       path: '/index.html',
       body: this.renderPage({
@@ -349,7 +355,7 @@ class BlogSite {
         photos: this.photos,
         recentPosts: publishedPosts
           .slice(0, 5)
-          .filter(x => x.publishedAt && x.publishedAt.valueOf() > yearAgo),
+          .filter(x => x.publishedAt && x.publishedAt.valueOf() > recentPostCutoff),
       }, 'Home'),
     });
 
@@ -448,7 +454,6 @@ export interface InstagramPhoto {
 }
 
 if (import.meta.main) {
-
   const notion = NotionConnection.fromEnv();
   const db = await notion.pageById('70bb63f638a6401496dd9a0c54a60369');
   if (!db) throw new Error(`No 'Posts' database found`);
