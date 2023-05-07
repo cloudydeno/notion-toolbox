@@ -1,4 +1,6 @@
-import { httpTracer, trace } from "./tracer.ts";
+import "https://deno.land/x/observability@v0.4.0/preconfigured/from-environment.ts";
+import { trace, httpTracer } from "https://deno.land/x/observability@v0.4.0/mod.ts";
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 import { makeCalendarResponse } from "./database-as-ical/mod.ts";
