@@ -10,6 +10,8 @@ import { RequestContext } from "./types.ts";
 
 const repoUrl = 'https://github.com/cloudydeno/notion-toolbox';
 
+console.log(JSON.stringify(Deno.env.toObject()));
+
 async function routeRequest(ctx: RequestContext): Promise<Response> {
   const httpSpan = trace.getActiveSpan();
 
