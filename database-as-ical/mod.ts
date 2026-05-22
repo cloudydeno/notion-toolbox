@@ -1,9 +1,7 @@
 #!/usr/bin/env -S deno run --allow-net=api.notion.com --allow-env=NOTION_KEY
 
-import { readableStreamFromIterable } from "https://deno.land/std@0.115.0/streams/conversion.ts";
-import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import { NotionConnection, NotionDatabase } from "../object-model/mod.ts";
-import { trace } from "https://deno.land/x/observability@v0.4.0/mod.ts";
+import { trace } from "@cloudydeno/opentelemetry/pkg/api";
 import { RequestContext } from "../types.ts";
 import { CalendarObject } from "./ical.ts";
 
@@ -18,7 +16,7 @@ export async function makeCalendarResponse(req: RequestContext) {
   trace.getActiveSpan()?.setAttribute('notion.database', db.title.asPlainText);
 
   // stream the iCal down
-  const dataStream = readableStreamFromIterable(emitCalendar(db));
+  const dataStream = ReadableStream.from(emitCalendar(db));
   return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
     headers: {
       'content-type': `text/${req.wantsHtml ? 'plain' : 'calendar'}; charset=utf-8`,

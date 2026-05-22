@@ -1,7 +1,8 @@
 import { RequestContext } from "../types.ts";
 
-import { ApiFactory, AwsServiceError } from "https://deno.land/x/aws_api@v0.5.0/client/mod.ts";
-import { S3 } from "https://aws-api.deno.dev/v0.3/services/s3.ts?actions=HeadObject,GetObject,PutObject";
+import { ApiFactory, AwsServiceError } from "@cloudydeno/aws-api/client";
+import { S3 } from "@cloudydeno/aws-api/services/s3";
+// import { S3 } from "https://aws-api.deno.dev/v0.3/services/s3.ts?actions=HeadObject,GetObject,PutObject";
 import { emitPageHtml } from "./mod.ts";
 const s3 = new ApiFactory().makeNew(S3);
 

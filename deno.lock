@@ -1,0 +1,104 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@cloudydeno/aws-api@0.9": "0.9.0",
+    "jsr:@cloudydeno/bitesized@^1.0.9": "1.0.9",
+    "jsr:@cloudydeno/opentelemetry@0.11": "0.11.1",
+    "jsr:@cloudydeno/opentelemetry@~0.11.1": "0.11.1",
+    "jsr:@jenny/mustache@~0.1.1": "0.1.1",
+    "jsr:@std/assert@^1.0.19": "1.0.19",
+    "jsr:@std/async@^1.0.14": "1.2.0",
+    "jsr:@std/encoding@0.224.0": "0.224.0",
+    "jsr:@std/encoding@1": "1.0.10",
+    "jsr:@std/encoding@^1.0.10": "1.0.10",
+    "jsr:@std/html@^1.0.6": "1.0.6",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/path@1": "1.1.4",
+    "jsr:@std/yaml@1": "1.0.12",
+    "jsr:@takker/md5@0.1": "0.1.0",
+    "jsr:@zaubrik/djwt@3": "3.0.2",
+    "npm:@notionhq/client@^5.22.0": "5.22.0"
+  },
+  "jsr": {
+    "@cloudydeno/aws-api@0.9.0": {
+      "integrity": "f634fb3401a28478f62f15f617b28937ac298b3e5ee65ede2d9eb7876541a47e",
+      "dependencies": [
+        "jsr:@std/async",
+        "jsr:@std/encoding@^1.0.10",
+        "jsr:@takker/md5"
+      ]
+    },
+    "@cloudydeno/bitesized@1.0.9": {
+      "integrity": "dbd5b63fcd803a93469451990ecc1e1769609324b2a91600cc21ccfe9c4f626f",
+      "dependencies": [
+        "jsr:@cloudydeno/opentelemetry@0.11",
+        "jsr:@std/encoding@1",
+        "jsr:@std/path",
+        "jsr:@std/yaml",
+        "jsr:@zaubrik/djwt"
+      ]
+    },
+    "@cloudydeno/opentelemetry@0.11.1": {
+      "integrity": "fcf3bec43e13170b40b0a22dc1212dd28b7c0bbd153e6b307275848444a276e2"
+    },
+    "@jenny/mustache@0.1.1": {
+      "integrity": "b533a06ec0ce231e451b7317665130c7dc021de9f254f967b181d0c86088cf4f"
+    },
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/async@1.2.0": {
+      "integrity": "c059c6f6d95ca7cc012ae8e8d7164d1697113d54b0b679e4372b354b11c2dee5"
+    },
+    "@std/encoding@0.224.0": {
+      "integrity": "efb6dca97d3e9c31392bd5c8cfd9f9fc9decf5a1f4d1f78af7900a493bcf89b5"
+    },
+    "@std/encoding@1.0.10": {
+      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
+    },
+    "@std/html@1.0.6": {
+      "integrity": "eaf759c8141e0733ca30eb49e4c08d8e6ca442b85c4d51f9894a56f502993e08"
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/yaml@1.0.12": {
+      "integrity": "7deabca4545bcedd07c5f69ea53acea71b8b4c67562f224e17b90d75944cb20c"
+    },
+    "@takker/md5@0.1.0": {
+      "integrity": "4c423d8247aadf7bcb1eb83c727bf28c05c21906e916517395d00aa157b6eae0"
+    },
+    "@zaubrik/djwt@3.0.2": {
+      "integrity": "8070adaa49cd9e5d2b8ae82fd461132c966ef2f8ff8378db4a4da8df4f17c664",
+      "dependencies": [
+        "jsr:@std/encoding@0.224.0"
+      ]
+    }
+  },
+  "npm": {
+    "@notionhq/client@5.22.0": {
+      "integrity": "sha512-lZ3JGBCd6O6MNHWn/58QcUqX1FgmlcODcx/EaUEEpuxLXF5tSi+v29Vzoz8mZ6JgDWDn5pMzzjB69QevYjQQZA=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@cloudydeno/aws-api@0.9",
+      "jsr:@cloudydeno/bitesized@^1.0.9",
+      "jsr:@cloudydeno/opentelemetry@~0.11.1",
+      "jsr:@jenny/mustache@~0.1.1",
+      "jsr:@std/assert@^1.0.19",
+      "jsr:@std/encoding@^1.0.10",
+      "jsr:@std/html@^1.0.6",
+      "npm:@notionhq/client@^5.22.0"
+    ]
+  }
+}

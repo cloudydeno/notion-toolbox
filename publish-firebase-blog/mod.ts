@@ -2,13 +2,11 @@
 
 import { NotionBlock, NotionConnection, NotionDatabase, NotionPage, NotionRichText } from "../object-model/mod.ts";
 
-import { ServiceAccount } from "https://crux.land/32WBxC#google-service-account";
-import { deployFirebaseSite, SiteFile } from "https://crux.land/2rY57Q#firebase-hosting-deploy";
-import Mustache from 'https://deno.land/x/mustache@v0.3.0/mustache.mjs';
+import { ServiceAccount } from "@cloudydeno/bitesized/integrations/google-service-account"
+import { deployFirebaseSite, SiteFile } from "@cloudydeno/bitesized/integrations/firebase-hosting-deploy"
+import * as Mustache from "@jenny/mustache";
 import { fetchPhoto } from "./instagram.ts";
 import { emitPageHtml } from "../extract-html/mod.ts";
-
-const renderMustache = Mustache.render as unknown as (template: string, view: unknown) => string;
 
 function log (strings: TemplateStringsArray, ...inputs: unknown[]) {
   const escapedInputs = inputs.map(x => typeof x === 'number' ? x : JSON.stringify(x));
@@ -401,10 +399,10 @@ class BlogSite {
   // helper to pass a data object though one layout, then the site layout
   // special page? don't pass a layout, pass html as data.innerHtml instead
   renderPage(data: {innerHtml?: string; baseHref?: string} | Record<string,unknown>, layoutName: string) {
-    var {innerHtml, baseHref} = data;
+    let {innerHtml, baseHref} = data;
     const layoutText = this.templates.get(layoutName);
     if (layoutText) {
-      innerHtml = renderMustache(layoutText, data);
+      innerHtml = Mustache.render(layoutText, data);
     }
     if (!innerHtml) throw new Error("No innerHtml for content");
 
@@ -412,7 +410,7 @@ class BlogSite {
     if (!defaultText) throw new Error(
       `Layout 'default' not found`);
 
-    const pageBody = renderMustache(defaultText, {
+    const pageBody = Mustache.render(defaultText, {
       siteTitle: this.siteTitle,
       siteSubtitle: this.siteSubtitle,
       pages: this.pages.filter(x => x.status === 'Published'),

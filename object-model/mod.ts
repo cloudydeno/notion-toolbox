@@ -1,15 +1,17 @@
-import { Client } from "https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts"
+// import { Client } from "https://deno.land/x/notion_sdk@v2.2.3/src/mod.ts"
 import {
+  Client,
   GetBlockResponse,
   GetDatabaseResponse,
   GetPageResponse,
-  QueryDatabaseParameters,
-  SearchBodyParameters,
+  QueryDataSourceParameters,
+  SearchParameters,
   SearchResponse,
   UpdateBlockParameters,
   UpdateDatabaseParameters,
   UpdatePageParameters,
-} from "https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts"
+} from "@notionhq/client";
+// } from "https://deno.land/x/notion_sdk@v2.2.3/src/api-endpoints.ts"
 
 export class NotionConnection {
   constructor(
@@ -43,13 +45,13 @@ export class NotionConnection {
     return database;
   }
 
-  async searchForFirstDatabase(options: Omit<SearchBodyParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
+  async searchForFirstDatabase(options: Omit<SearchParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
     const response = await this.api.search({
       ...options,
       page_size: 1,
       filter: {
         property: 'object',
-        value: 'database',
+        value: 'data_source',
       },
     });
     if (response.results.length < 1) return null;
@@ -57,7 +59,7 @@ export class NotionConnection {
     return new NotionDatabase(this.api, result.id, result as SearchResult & {object: 'database'});
   }
 
-  async searchForFirstPage(options: Omit<SearchBodyParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
+  async searchForFirstPage(options: Omit<SearchParameters, 'page_size' | 'filter' | 'start_cursor'> = {}) {
     const response = await this.api.search({
       ...options,
       page_size: 1,
@@ -71,7 +73,7 @@ export class NotionConnection {
     return new NotionPage(this.api, result.id, result as SearchResult & {object: 'page'});
   }
 
-  async* searchForPages(options: Omit<SearchBodyParameters, 'filter' | 'start_cursor'> = {}) {
+  async* searchForPages(options: Omit<SearchParameters, 'filter' | 'start_cursor'> = {}) {
     for await (const result of paginateFully(start_cursor => this.api.search({
       ...options,
       start_cursor,
@@ -121,7 +123,7 @@ type BlockData = Extract<GetBlockResponse, {type: string}>;
 export class NotionBlock extends NotionBlockParent {
   constructor(
     api: Client,
-    public readonly id: string,
+    public override readonly id: string,
     public knownSnapshot?: BlockData,
   ) {
     super(api, id);
@@ -240,12 +242,12 @@ export class NotionDatabase extends NotionObject {
     super(api);
   }
 
-  async* queryAllPages(options: Omit<QueryDatabaseParameters, 'database_id' | 'start_cursor'> = {}) {
+  async* queryAllPages(options: Omit<QueryDataSourceParameters, 'data_source_id' | 'start_cursor'> = {}) {
     for await (const result of paginateFully(start_cursor =>
-      this.api.databases.query({
+      this.api.dataSources.query({
         ...options,
         start_cursor,
-        database_id: this.id,
+        data_source_id: this.id,
     }))) {
       yield new NotionPage(this.api, result.id, result as PageData);
     }
