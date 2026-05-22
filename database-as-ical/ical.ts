@@ -12,7 +12,7 @@ export class CalendarObject {
     return this;
   }
   string(key: string, value: string) {
-    let fullText = `${key}:${escapeString(value)}`;
+    const fullText = `${key}:${escapeString(value)}`;
     this.lines.push(fullText);
     return this;
   }

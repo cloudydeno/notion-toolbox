@@ -1,7 +1,4 @@
-import "https://deno.land/x/observability@v0.4.0/preconfigured/from-environment.ts";
-import { trace, httpTracer } from "https://deno.land/x/observability@v0.4.0/mod.ts";
-
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { trace } from "@cloudydeno/opentelemetry/pkg/api";
 
 import { makeCalendarResponse } from "./database-as-ical/mod.ts";
 import { makeExtractHtmlResponse } from "./extract-html/api.ts";
@@ -82,8 +79,8 @@ function ResponseText(status: number, body: string) {
 }
 
 console.log("Listening on http://localhost:8000");
-serve(httpTracer(async (request) => {
+Deno.serve(async (request) => {
   const response = await handleRequest(request).catch(renderError);
   response.headers.set("server", "notion-api-toolbox/v0.4.0");
   return response;
-}));
+});

@@ -1,5 +1,5 @@
-import { assertEquals } from "https://deno.land/std@0.115.0/testing/asserts.ts";
-import { encode } from "https://deno.land/x/html_entities@v1.0/lib/xml-entities.js";
+import { assertEquals } from "@std/assert/equals";
+import { escape as encode } from "@std/html/entities";
 
 import {
   NotionBlock,
@@ -20,7 +20,7 @@ export async function emitPageHtml(page: NotionPage) {
 }
 
 class HtmlBlockScope {
-  readonly lines = new Array<String>();
+  readonly lines = new Array<string>();
   stringify() {
     this.ensureParentIs(null);
     return this.lines.join('\n');

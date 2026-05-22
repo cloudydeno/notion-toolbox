@@ -1,0 +1,14 @@
+version: 2
+updates:
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: deno
+    directory: / # Location of package manifests
+    schedule:
+      interval: monthly
+
+enable-beta-ecosystems: true # Required to use the Deno ecosystem while in beta
