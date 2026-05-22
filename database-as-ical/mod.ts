@@ -3,7 +3,7 @@
 import { readableStreamFromIterable } from "https://deno.land/std@0.115.0/streams/conversion.ts";
 import { map } from "https://deno.land/x/stream_observables@v1.2/transforms/map.ts";
 import { NotionConnection, NotionDatabase } from "../object-model/mod.ts";
-import { trace } from "../tracer.ts";
+import { trace } from "https://deno.land/x/observability@v0.4.0/mod.ts";
 import { RequestContext } from "../types.ts";
 import { CalendarObject } from "./ical.ts";
 
