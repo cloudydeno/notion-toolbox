@@ -7,6 +7,6 @@
     "@notionhq/client": "npm:@notionhq/client@^5.22.0",
     "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
-    "@std/html": "jsr:@std/html@^1.0.6"
+    "@std/html": "jsr:@std/html@^1.0.7"
   }
 }
