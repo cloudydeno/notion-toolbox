@@ -1,7 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@cloudydeno/aws-api@0.9": "0.9.0",
+    "jsr:@cloudydeno/aws-api@0.10": "0.10.0",
     "jsr:@cloudydeno/bitesized@^1.0.9": "1.0.9",
     "jsr:@cloudydeno/opentelemetry@0.11": "0.11.1",
     "jsr:@cloudydeno/opentelemetry@~0.11.1": "0.11.1",
@@ -22,8 +22,8 @@
     "npm:@notionhq/client@^5.22.0": "5.22.0"
   },
   "jsr": {
-    "@cloudydeno/aws-api@0.9.0": {
-      "integrity": "f634fb3401a28478f62f15f617b28937ac298b3e5ee65ede2d9eb7876541a47e",
+    "@cloudydeno/aws-api@0.10.0": {
+      "integrity": "94c9d6ddc50910ef5967d0f19a2f90fcb34913b9d2eb75059c762049516704f6",
       "dependencies": [
         "jsr:@std/async",
         "jsr:@std/encoding@^1.0.10",
@@ -93,7 +93,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@cloudydeno/aws-api@0.9",
+      "jsr:@cloudydeno/aws-api@0.10",
       "jsr:@cloudydeno/bitesized@^1.0.9",
       "jsr:@cloudydeno/opentelemetry@~0.11.1",
       "jsr:@jenny/mustache@~0.1.1",
