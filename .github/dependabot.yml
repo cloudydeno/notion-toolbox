@@ -5,10 +5,16 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      official:
+        patterns:
+        - "actions/*"
 
   - package-ecosystem: deno
-    directory: / # Location of package manifests
+    directory: /
     schedule:
       interval: monthly
-
-enable-beta-ecosystems: true # Required to use the Deno ecosystem while in beta
+    groups:
+      std:
+        patterns:
+        - "@std/*"
