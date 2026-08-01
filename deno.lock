@@ -19,7 +19,7 @@
     "jsr:@std/yaml@1": "1.1.2",
     "jsr:@takker/md5@0.1": "0.1.0",
     "jsr:@zaubrik/djwt@3": "3.0.2",
-    "npm:@notionhq/client@^5.23.2": "5.23.3"
+    "npm:@notionhq/client@^5.23.3": "5.23.3"
   },
   "jsr": {
     "@cloudydeno/aws-api@0.10.0": {
@@ -100,7 +100,7 @@
       "jsr:@std/assert@^1.0.19",
       "jsr:@std/encoding@^1.0.11",
       "jsr:@std/html@^1.0.7",
-      "npm:@notionhq/client@^5.23.2"
+      "npm:@notionhq/client@^5.23.3"
     ]
   }
 }
