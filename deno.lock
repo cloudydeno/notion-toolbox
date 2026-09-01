@@ -19,7 +19,7 @@
     "jsr:@std/yaml@1": "1.1.2",
     "jsr:@takker/md5@0.1": "0.1.0",
     "jsr:@zaubrik/djwt@3": "3.0.2",
-    "npm:@notionhq/client@^5.23.2": "5.23.3"
+    "npm:@notionhq/client@^5.26.0": "5.26.0"
   },
   "jsr": {
     "@cloudydeno/aws-api@0.10.0": {
@@ -87,8 +87,8 @@
     }
   },
   "npm": {
-    "@notionhq/client@5.23.3": {
-      "integrity": "sha512-Uk0ycO+u6+iueoE/eK9Aa/DGWd2tZ9ymvGF/MXcfxXXL+AS2JYWm1ols19rEk5qOdZ0l2KYc6zThx0iXQ3QhpQ=="
+    "@notionhq/client@5.26.0": {
+      "integrity": "sha512-Oc3438nQ5YmZkVO7YJG8fcTYl0V46CirdCvO33azZ9f7ZfD2rsHE4fUVANJiBB9Xf1sqpCs82nd8oKPxeXLmMg=="
     }
   },
   "workspace": {
@@ -100,7 +100,7 @@
       "jsr:@std/assert@^1.0.19",
       "jsr:@std/encoding@^1.0.11",
       "jsr:@std/html@^1.0.7",
-      "npm:@notionhq/client@^5.23.2"
+      "npm:@notionhq/client@^5.26.0"
     ]
   }
 }
